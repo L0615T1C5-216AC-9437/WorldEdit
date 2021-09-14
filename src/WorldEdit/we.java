@@ -2,28 +2,40 @@ package WorldEdit;
 
 import arc.Core;
 import arc.Events;
+import arc.files.Fi;
 import arc.input.KeyCode;
 import arc.struct.ObjectSet;
+import arc.struct.Seq;
 import arc.util.Log;
 import mindustry.Vars;
 import mindustry.core.World;
 import mindustry.game.EventType;
 import mindustry.game.EventType.ClientLoadEvent;
+import mindustry.io.SaveIO;
 import mindustry.mod.Mod;
 import mindustry.ui.Menus;
+import mindustry.ui.dialogs.SettingsMenuDialog;
 import mindustry.world.Block;
 import mindustry.world.Tile;
 import mindustry.world.blocks.ConstructBlock;
 import mindustry.world.blocks.environment.*;
 import mindustry.world.blocks.legacy.LegacyBlock;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class we extends Mod {
-    private static final int maxSelection = 500;
+import static arc.util.Log.err;
+import static arc.util.Log.info;
+import static mindustry.Vars.*;
 
+public class we extends Mod {
     private static boolean editing = false;
+    //autoSave
+    private static long lastAutoSave = System.currentTimeMillis();
+    private static final DateTimeFormatter autoSaveNameFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy_HH-mm-ss");
+    private static final Fi autoSaveDirectory = saveDirectory.child("WorldEdit/");
 
     private static class blockData { //not record due to compile errors
         public final boolean breakable;
@@ -34,7 +46,7 @@ public class we extends Mod {
             this.breakable = breakable;
             this.floating = floating;
             this.placableLiquid = placableLiquid;
-        };
+        }
     }
     private static final HashMap<Block, blockData> defaultBlockData = new HashMap<>();
     private static ObjectSet<Block> defaultRevealedBlocks = null;
@@ -53,10 +65,17 @@ public class we extends Mod {
             var coreBundle = Core.bundle.getProperties();
             coreBundle.put("setting.weSafeExit.name", "(WE) Safe Exit");
             addBooleanGameSetting("weSafeExit", true);
+            coreBundle.put("setting.weAutoSave.name", "(WE) Auto Save");
+            addBooleanGameSetting("weAutoSave", true);
+            coreBundle.put("setting.weAutoSaveSpacing.name", "(WE) Auto Save Spacing");
+            addSliderGameSetting("weAutoSaveSpacing", 5, 5, 60, 5, i -> "Save every " + i + " minutes");
+            coreBundle.put("setting.weAutoSaveCount.name", "(WE) Auto Save Count");
+            addSliderGameSetting("weAutoSaveCount", 10, 1, 60, 1, i -> "Maximum of " + i + " AutoSaves");
 
             Menus.registerMenu(30989378, (player, selection) -> {
                 switch (selection) {
-                    default -> {}
+                    default -> {
+                    }
                     case 0 -> {
                         if (Vars.state.rules.infiniteResources) {
                             if (editing) {
@@ -125,9 +144,37 @@ public class we extends Mod {
                         if (b.isAir()) {
                             b = cursorTile.floor();
                         }
-                        System.out.println(b);
                         Vars.control.input.block = b;
                         Vars.ui.hudfrag.blockfrag.currentCategory = b.category;
+                    }
+                }
+            }
+            if (editing && Vars.state.isPlaying() && Core.settings.getBool("weAutoSave", true)) {
+                if (lastAutoSave < System.currentTimeMillis() - (Core.settings.getInt("weAutoSaveSpacing") * 60 * 1000L)) {
+                    lastAutoSave = System.currentTimeMillis();
+                    Log.info("AutoSaving");
+                    int max = Core.settings.getInt("weAutoSaveCount");
+                    //use map file name to make sure it can be saved
+                    String mapName = (state.map.file == null ? "unknown" : state.map.file.nameWithoutExtension()).replace(" ", "_");
+                    String date = autoSaveNameFormatter.format(LocalDateTime.now());
+
+                    Seq<Fi> autoSaves = autoSaveDirectory.findAll(f -> f.name().startsWith("auto_"));
+                    autoSaves.sort(f -> -f.lastModified());
+
+                    //delete older saves
+                    if (autoSaves.size >= max) {
+                        for (int i = max - 1; i < autoSaves.size; i++) {
+                            autoSaves.get(i).delete();
+                        }
+                    }
+
+                    String fileName = "auto_" + mapName + "_" + date + "." + saveExtension;
+                    Fi file = autoSaveDirectory.child(fileName);
+                    try {
+                        SaveIO.save(file);
+                        info("AutoSave completed.");
+                    } catch (Throwable e) {
+                        err("AutoSave failed.", e);
                     }
                 }
             }
@@ -185,8 +232,12 @@ public class we extends Mod {
         defaultBlockData.clear();
     }
 
-    public static void addBooleanGameSetting(String key, boolean defaultBooleanValue){
+    public static void addBooleanGameSetting(String key, boolean defaultBooleanValue) {
         Vars.ui.settings.game.checkPref(key, Core.settings.getBool(key, defaultBooleanValue));
+    }
+
+    public static void addSliderGameSetting(String key, int defaultValue, int minValue, int maxValue, int stepValue, SettingsMenuDialog.StringProcessor sp) {
+        Vars.ui.settings.game.sliderPref(key, defaultValue, minValue, maxValue, stepValue, sp);
     }
 
     public static String booleanColor(boolean b) {
