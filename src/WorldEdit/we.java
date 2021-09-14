@@ -133,57 +133,59 @@ public class we extends Mod {
             });
         });
         Events.run(EventType.Trigger.update, () -> {
-            if (Core.input.keyTap(KeyCode.f2)) {
-                callWorldEditMenu();
-            }
-            if (Core.input.keyTap(KeyCode.escape)) {
-                if (editing && !Core.scene.hasDialog()) { //if World Edit is enabled and there is no Dialogue (Menu/InfoMessage) open
-                    if (Core.settings.getBool("weSafeExit")) {
-                        reset();
-                        Vars.ui.showInfo("[accent]For your safety World Edit was Disabled.\n\n[white]Remember to [accent]Always [white]disable [accent]World Edit [white]before saving and quiting a save.");
-                    }
+            if (Vars.state.isPlaying()) {
+                if (Core.input.keyTap(KeyCode.f2)) {
+                    callWorldEditMenu();
                 }
-            }
-            if (Core.input.keyTap(KeyCode.mouseMiddle)) {
-                if (editing) {
-                    int rawCursorX = World.toTile(Core.input.mouseWorld().x), rawCursorY = World.toTile(Core.input.mouseWorld().y);
-                    final Tile cursorTile = Vars.world.tile(rawCursorX, rawCursorY);
-                    if (cursorTile.build == null) {
-                        Block b = cursorTile.block();
-                        if (b.isAir()) {
-                            b = cursorTile.floor();
-                        }
-                        Vars.control.input.block = b;
-                        Vars.ui.hudfrag.blockfrag.currentCategory = b.category;
-                    }
-                }
-            }
-            if (editing && Vars.state.isPlaying() && Core.settings.getBool("weAutoSave", true)) {
-                if (lastAutoSave < System.currentTimeMillis() - (Core.settings.getInt("weAutoSaveSpacing") * 60 * 1000L)) {
-                    lastAutoSave = System.currentTimeMillis();
-                    Log.info("AutoSaving");
-                    int max = Core.settings.getInt("weAutoSaveCount");
-                    //use map file name to make sure it can be saved
-                    String mapName = (state.map.file == null ? "unknown" : state.map.file.nameWithoutExtension()).replace(" ", "_");
-                    String date = autoSaveNameFormatter.format(LocalDateTime.now());
-
-                    Seq<Fi> autoSaves = autoSaveDirectory.findAll(f -> f.name().startsWith("auto_"));
-                    autoSaves.sort(f -> -f.lastModified());
-
-                    //delete older saves
-                    if (autoSaves.size >= max) {
-                        for (int i = max - 1; i < autoSaves.size; i++) {
-                            autoSaves.get(i).delete();
+                if (Core.input.keyTap(KeyCode.escape)) {
+                    if (editing && !Core.scene.hasDialog()) { //if World Edit is enabled and there is no Dialogue (Menu/InfoMessage) open
+                        if (Core.settings.getBool("weSafeExit")) {
+                            reset();
+                            Vars.ui.showInfo("[accent]For your safety World Edit was Disabled.\n\n[white]Remember to [accent]Always [white]disable [accent]World Edit [white]before saving and quiting a save.");
                         }
                     }
+                }
+                if (Core.input.keyTap(KeyCode.mouseMiddle)) {
+                    if (editing) {
+                        int rawCursorX = World.toTile(Core.input.mouseWorld().x), rawCursorY = World.toTile(Core.input.mouseWorld().y);
+                        final Tile cursorTile = Vars.world.tile(rawCursorX, rawCursorY);
+                        if (cursorTile.build == null) {
+                            Block b = cursorTile.block();
+                            if (b.isAir()) {
+                                b = cursorTile.floor();
+                            }
+                            Vars.control.input.block = b;
+                            Vars.ui.hudfrag.blockfrag.currentCategory = b.category;
+                        }
+                    }
+                }
+                if (editing && Core.settings.getBool("weAutoSave", true)) {
+                    if (lastAutoSave < System.currentTimeMillis() - (Core.settings.getInt("weAutoSaveSpacing") * 60 * 1000L)) {
+                        lastAutoSave = System.currentTimeMillis();
+                        Log.info("AutoSaving");
+                        int max = Core.settings.getInt("weAutoSaveCount");
+                        //use map file name to make sure it can be saved
+                        String mapName = (state.map.file == null ? "unknown" : state.map.file.nameWithoutExtension()).replace(" ", "_");
+                        String date = autoSaveNameFormatter.format(LocalDateTime.now());
 
-                    String fileName = "auto_" + mapName + "_" + date + "." + saveExtension;
-                    Fi file = autoSaveDirectory.child(fileName);
-                    try {
-                        SaveIO.save(file);
-                        info("AutoSave completed.");
-                    } catch (Throwable e) {
-                        err("AutoSave failed.", e);
+                        Seq<Fi> autoSaves = autoSaveDirectory.findAll(f -> f.name().startsWith("auto_"));
+                        autoSaves.sort(f -> -f.lastModified());
+
+                        //delete older saves
+                        if (autoSaves.size >= max) {
+                            for (int i = max - 1; i < autoSaves.size; i++) {
+                                autoSaves.get(i).delete();
+                            }
+                        }
+
+                        String fileName = "auto_" + mapName + "_" + date + "." + saveExtension;
+                        Fi file = autoSaveDirectory.child(fileName);
+                        try {
+                            SaveIO.save(file);
+                            info("AutoSave completed.");
+                        } catch (Throwable e) {
+                            err("AutoSave failed.", e);
+                        }
                     }
                 }
             }
