@@ -67,10 +67,10 @@ public class we extends Mod {
             addBooleanGameSetting("weSafeExit", true);
             coreBundle.put("setting.weAutoSave.name", "(WE) Auto Save");
             addBooleanGameSetting("weAutoSave", true);
-            coreBundle.put("setting.weAutoSaveSpacing.name", "(WE) Auto Save Spacing");
-            addSliderGameSetting("weAutoSaveSpacing", 5, 5, 60, 5, i -> "Save every " + i + " minutes");
-            coreBundle.put("setting.weAutoSaveCount.name", "(WE) Auto Save Count");
-            addSliderGameSetting("weAutoSaveCount", 10, 1, 60, 1, i -> "Maximum of " + i + " AutoSaves");
+            coreBundle.put("setting.weAutoSaveSpacing.name", "(WE) AutoSave Spacing");
+            addSliderGameSetting("weAutoSaveSpacing", 5, 5, 60, 5, i -> i + " minutes");
+            coreBundle.put("setting.weAutoSaveCount.name", "(WE) Max AutoSave Count");
+            addSliderGameSetting("weAutoSaveCount", 10, 1, 60, 1, i -> i + " AutoSaves");
 
             Menus.registerMenu(30989378, (player, selection) -> {
                 switch (selection) {
