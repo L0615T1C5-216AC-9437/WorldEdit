@@ -6,6 +6,7 @@ import arc.input.KeyCode;
 import arc.struct.ObjectSet;
 import arc.util.Log;
 import mindustry.Vars;
+import mindustry.core.World;
 import mindustry.game.EventType;
 import mindustry.game.EventType.ClientLoadEvent;
 import mindustry.mod.Mod;
@@ -112,6 +113,21 @@ public class we extends Mod {
                     if (Core.settings.getBool("weSafeExit")) {
                         reset();
                         Vars.ui.showInfo("[accent]For your safety World Edit was Disabled.\n\n[white]Remember to [accent]Always [white]disable [accent]World Edit [white]before saving and quiting a save.");
+                    }
+                }
+            }
+            if (Core.input.keyTap(KeyCode.mouseMiddle)) {
+                if (editing) {
+                    int rawCursorX = World.toTile(Core.input.mouseWorld().x), rawCursorY = World.toTile(Core.input.mouseWorld().y);
+                    final Tile cursorTile = Vars.world.tile(rawCursorX, rawCursorY);
+                    if (cursorTile.build == null) {
+                        Block b = cursorTile.block();
+                        if (b.isAir()) {
+                            b = cursorTile.floor();
+                        }
+                        System.out.println(b);
+                        Vars.control.input.block = b;
+                        Vars.ui.hudfrag.blockfrag.currentCategory = b.category;
                     }
                 }
             }
