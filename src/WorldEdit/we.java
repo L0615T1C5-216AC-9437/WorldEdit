@@ -48,6 +48,7 @@ public class we extends Mod {
             this.placeableLiquid = placableLiquid;
         }
     }
+
     private static final HashMap<Block, blockData> defaultBlockData = new HashMap<>();
     private static ObjectSet<Block> defaultRevealedBlocks = null;
 
@@ -120,19 +121,17 @@ public class we extends Mod {
                         Core.settings.put("wePlacingFloorRemovesOre", !Core.settings.getBool("wePlacingFloorRemovesOre", true));
                         callWorldEditMenu();
                     }
-                    case 4 -> {
-                        Vars.ui.showInfo("""
-                                [accent]Auto Save[white]:
-                                Due to how jank this mod is, this mod [accent]automatically saves [white]a snapshot of the map you are editing.
-                                [accent]World Edit [white]autosaves can be found in the [accent]saves/WorldEdit[white] directory.
-                                You will need to [accent]manually import [white]autosaves for them to show in the [load game] tab.
-                                You can edit how often autosaves are performed and how many of them can be kept in [accent]settings > game
-                                """);
-                    }
+                    case 4 -> Vars.ui.showInfo("""
+                            [accent]Auto Save[white]:
+                            Due to how jank this mod is, this mod [accent]automatically saves [white]a snapshot of the map you are editing.
+                            [accent]World Edit [white]autosaves can be found in the [accent]saves/WorldEdit[white] directory.
+                            You will need to [accent]manually import [white]autosaves for them to show in the [load game] tab.
+                            You can edit how often autosaves are performed and how many of them can be kept in [accent]settings > game
+                            """);
                 }
             });
 
-            if (!Core.settings.getBool("weExitCodeZero")) {
+            if (!Core.settings.getBool("weExitCodeZero", true)) {
                 Vars.ui.showCustomConfirm("World Edit didnt shut down correctly!",
                         """
                                 World Edit was not disabled before the game exit.
@@ -245,6 +244,7 @@ public class we extends Mod {
             Vars.ui.showInfo("[scarlet]////////// - WARNING - \\\\\\\\\\\\\\\\\\\\\n\n[white]Remember to [accent]Disable World Edit [white]before saving and/or exiting.\nDisabling World Edit removes Wall/Boulders/Floors/etc. from build menu.\nIf [accent]World Edit [white]is [scarlet]Disabled [white]and you place a [accent]Wall/Boulder [white]your save [scarlet]WILL [white]be corrupted irreversibly!\n\n[gray]It is highly recommended for you to leave Safe Exit Enabled!");
         }
     }
+
     public static void reset() {
         if (defaultRevealedBlocks != null) Vars.state.rules.revealedBlocks = defaultRevealedBlocks;
         editing = false;
