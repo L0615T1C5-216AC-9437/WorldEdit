@@ -40,12 +40,12 @@ public class we extends Mod {
     private static class blockData { //not record due to compile errors
         public final boolean breakable;
         public final boolean floating;
-        public final boolean placableLiquid;
+        public final boolean placeableLiquid;
 
         blockData(boolean breakable, boolean floating, boolean placableLiquid) {
             this.breakable = breakable;
             this.floating = floating;
-            this.placableLiquid = placableLiquid;
+            this.placeableLiquid = placableLiquid;
         }
     }
     private static final HashMap<Block, blockData> defaultBlockData = new HashMap<>();
@@ -226,7 +226,7 @@ public class we extends Mod {
             if (bd != null) {
                 b.breakable = bd.breakable;
                 b.floating = bd.floating;
-                b.placeableLiquid = bd.placableLiquid;
+                b.placeableLiquid = bd.placeableLiquid;
             }
         });
         defaultBlockData.clear();
