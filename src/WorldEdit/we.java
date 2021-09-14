@@ -120,6 +120,15 @@ public class we extends Mod {
                         Core.settings.put("we.placingFloorRemovesOre", !Core.settings.getBool("we.placingFloorRemovesOre", true));
                         callWorldEditMenu();
                     }
+                    case 4 -> {
+                        Vars.ui.showInfo("""
+                                [accent]Auto Save[white]:
+                                Due to how jank this mod is, this mod [accent]automatically saves [white]a snapshot of the map you are editing.
+                                [accent]World Edit [white]autosaves can be found in the [accent]saves/WorldEdit[white] directory.
+                                You will need to [accent]manually import [white]autosaves for them to show in the [load game] tab.
+                                You can edit how often autosaves are performed and how many of them can be kept in [accent]settings > game
+                                """);
+                    }
                 }
             });
         });
@@ -190,10 +199,11 @@ public class we extends Mod {
     }
 
     public static void callWorldEditMenu() {
-        String[][] buttons = new String[][] {
-                new String[] { "[white]World Edit: " + (editing ? "[lime]Enabled\n[black]lol" : "[scarlet]Disabled\n[black]Unlock Za Warudo")},
-                new String[] { "Bake Floors", "Bake Ores" },
-                new String[] { "Placing Floor removes Ore? " + booleanColor(Core.settings.getBool("we.placingFloorRemovesOre", true)) }
+        String[][] buttons = new String[][]{
+                new String[]{"[white]World Edit: " + (editing ? "[lime]Enabled\n[black]lol" : "[scarlet]Disabled\n[black]Unlock Za Warudo")},
+                new String[]{"Bake Floors", "Bake Ores"},
+                new String[]{"Placing Floor removes Ore? " + booleanColor(Core.settings.getBool("we.placingFloorRemovesOre", true))},
+                new String[]{"More Info"}
         };
         Menus.menu(30989378, "World Edit Menu", "[gray]Press [ esc ] to exit this menu", buttons);
     }
