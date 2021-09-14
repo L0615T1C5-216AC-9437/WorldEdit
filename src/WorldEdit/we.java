@@ -96,7 +96,7 @@ public class we extends Mod {
                                     Floor ore = t.overlay();
                                     t.setFloor((Floor) t.block());
                                     t.setAir();
-                                    if (!Core.settings.getBool("we.placingFloorRemovesOre", true)) {
+                                    if (!Core.settings.getBool("wePlacingFloorRemovesOre", true)) {
                                         if (ore != null) {
                                             t.setOverlay(ore);
                                         }
@@ -117,7 +117,7 @@ public class we extends Mod {
                         }
                     });
                     case 3 -> {
-                        Core.settings.put("we.placingFloorRemovesOre", !Core.settings.getBool("we.placingFloorRemovesOre", true));
+                        Core.settings.put("wePlacingFloorRemovesOre", !Core.settings.getBool("wePlacingFloorRemovesOre", true));
                         callWorldEditMenu();
                     }
                     case 4 -> {
@@ -204,7 +204,7 @@ public class we extends Mod {
         String[][] buttons = new String[][]{
                 new String[]{"[white]World Edit: " + (editing ? "[lime]Enabled\n[black]lol" : "[scarlet]Disabled\n[black]Unlock Za Warudo")},
                 new String[]{"Bake Floors", "Bake Ores"},
-                new String[]{"Placing Floor removes Ore? " + booleanColor(Core.settings.getBool("we.placingFloorRemovesOre", true))},
+                new String[]{"Placing Floor removes Ore? " + booleanColor(Core.settings.getBool("wePlacingFloorRemovesOre", true))},
                 new String[]{"More Info"}
         };
         Menus.menu(30989378, "World Edit Menu", "[gray]Press [ esc ] to exit this menu", buttons);
