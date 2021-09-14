@@ -131,6 +131,21 @@ public class we extends Mod {
                     }
                 }
             });
+
+            if (!Core.settings.getBool("weExitCodeZero")) {
+                Vars.ui.showCustomConfirm("World Edit didnt shut down correctly!",
+                        """
+                                World Edit was not disabled before the game exit.
+                                This may have caused the save to corrupt!
+                                Luckily we have autosaves that save your map every so often.""",
+                        "Open Autosave Folder",
+                        "Ignore",
+                        () -> {
+                            Core.app.openFolder(autoSaveDirectory.absolutePath());
+                            Core.settings.put("weExitCodeZero", true);
+                        },
+                        () -> Core.settings.put("weExitCodeZero", true));
+            }
         });
         Events.run(EventType.Trigger.update, () -> {
             if (Vars.state.isPlaying()) {
@@ -212,6 +227,7 @@ public class we extends Mod {
 
     public static void unlockTheWorld() {
         if (editing) return; //triggering utw twice messes up reset()
+        Core.settings.put("weExitCodeZero", false);
         if (defaultRevealedBlocks == null) defaultRevealedBlocks = Vars.state.rules.revealedBlocks;
         editing = true;
         Vars.state.rules.editor = true;
@@ -242,6 +258,7 @@ public class we extends Mod {
             }
         });
         defaultBlockData.clear();
+        Core.settings.put("weExitCodeZero", true);
     }
 
     public static void addBooleanGameSetting(String key, boolean defaultBooleanValue) {
