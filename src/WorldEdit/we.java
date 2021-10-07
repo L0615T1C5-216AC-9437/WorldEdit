@@ -323,16 +323,16 @@ public class we extends Mod {
                                                         Tile c = world.tile(tile.x - 1, tile.y);
                                                         Tile d = world.tile(tile.x, tile.y - 1);
 
-                                                        if (a != null && currentAction.type.check(a, currentAction.before)) {
+                                                        if (a != null && currentAction.type.check(a, currentAction.before) && a.block().isAir()) {
                                                             queue.add(a);
                                                         }
-                                                        if (b != null && currentAction.type.check(b, currentAction.before)) {
+                                                        if (b != null && currentAction.type.check(b, currentAction.before) && b.block().isAir()) {
                                                             queue.add(b);
                                                         }
-                                                        if (c != null && currentAction.type.check(c, currentAction.before)) {
+                                                        if (c != null && currentAction.type.check(c, currentAction.before) && c.block().isAir()) {
                                                             queue.add(c);
                                                         }
-                                                        if (d != null && currentAction.type.check(d, currentAction.before)) {
+                                                        if (d != null && currentAction.type.check(d, currentAction.before) && d.block().isAir()) {
                                                             queue.add(d);
                                                         }
                                                     }
