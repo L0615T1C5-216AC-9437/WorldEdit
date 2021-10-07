@@ -58,6 +58,8 @@ public class we extends Mod {
         add("cliff");
     }};
 
+    private static final String safeToolsWarning = "[accent]Safe Tools [white]limited your action to 5000 blocks!\n[gray]Go to settings to disable.";
+
     //undo redo
     private enum actionType {
         block {
@@ -148,6 +150,8 @@ public class we extends Mod {
             addSliderGameSetting("weAutoSaveSpacing", 5, 5, 60, 5, i -> i + " minutes");
             coreBundle.put("setting.weAutoSaveCount.name", "(WE) Max AutoSave Count");
             addSliderGameSetting("weAutoSaveCount", 10, 1, 60, 1, i -> i + " AutoSaves");
+            coreBundle.put("setting.weSafeTools.name", "(WE) Safe Tools");
+            addBooleanGameSetting("weSafeTools", true);
 
             Menus.registerMenu(30989378, (player, selection) -> {
                 switch (selection) {
@@ -334,6 +338,10 @@ public class we extends Mod {
                                                     }
                                                 }
                                                 actionQueue = queue;
+                                                if (Core.settings.getBool("weSafeTools") && currentAction.affected.size + actionQueue.size() > 5000) {
+                                                    Vars.ui.showInfo(safeToolsWarning);
+                                                    break;
+                                                }
                                             }
                                         }
                                         case outline -> {
@@ -394,6 +402,10 @@ public class we extends Mod {
                                                     }
                                                 }
                                                 actionQueue = queue;
+                                                if (Core.settings.getBool("weSafeTools") && currentAction.affected.size + actionQueue.size() > 5000) {
+                                                    Vars.ui.showInfo(safeToolsWarning);
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
