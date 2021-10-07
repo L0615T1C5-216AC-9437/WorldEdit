@@ -58,6 +58,82 @@ public class we extends Mod {
         add("cliff");
     }};
 
+    //undo redo
+    private enum actionType {
+        block {
+            @Override
+            public boolean check(Tile a, Object b) {
+                return a.block() == b;
+            }
+
+            @Override
+            public void set(Tile a, Object b) {
+                a.setBlock((Block) b);
+            }
+        },
+        ore {
+            @Override
+            public boolean check(Tile a, Object b) {
+                return a.overlay() == b;
+            }
+
+            @Override
+            public void set(Tile a, Object b) {
+                a.setOverlay((Block) b);
+            }
+        },
+        floor {
+            @Override
+            public boolean check(Tile a, Object b) {
+                return a.floor() == b;
+            }
+
+            @Override
+            public void set(Tile a, Object b) {
+                a.setFloor((Floor) b);
+            }
+        };
+
+        public boolean check(Tile a, Object b) {
+            return false;
+        }
+
+        public void set(Tile a, Object b) {
+
+        }
+    }
+
+    private static class actionLogData {
+        public final actionType type;
+        public final Seq<Tile> affected;
+        public final Object before;
+        public final Object after;
+
+        public actionLogData(actionType type, Seq<Tile> affected, Object before, Object after) {
+            this.type = type;
+            this.affected = affected;
+            this.before = before;
+            this.after = after;
+        }
+    }
+
+    private static final actionLogArray actionHistory = new actionLogArray();
+    private static actionLogData currentAction = null;
+
+    //tools
+    private enum tool {
+        fill("Fill"),
+        outline("Outline");
+
+        public final String name;
+
+        tool(String name) {
+            this.name = name;
+        }
+    }
+
+    private static tool currentTool = null;
+
     public we() {
         Log.info("Loading Events in World Edit.");
 
@@ -75,7 +151,14 @@ public class we extends Mod {
 
             Menus.registerMenu(30989378, (player, selection) -> {
                 switch (selection) {
-                    default -> {
+                    default -> Vars.ui.showInfo("""
+                            [accent]Auto Save[white]:
+                            Due to how jank this mod is, this mod [accent]automatically saves [white]a snapshot of the map you are editing.
+                            [accent]World Edit [white]autosaves can be found in the [accent]saves/WorldEdit[white] directory.
+                            You will need to [accent]manually import [white]autosaves for them to show in the [load game] tab.
+                            You can edit how often autosaves are performed and how many of them can be kept in [accent]settings > game
+                            """);
+                    case -1 -> {
                     }
                     case 0 -> {
                         if (Vars.state.rules.infiniteResources) {
@@ -121,17 +204,34 @@ public class we extends Mod {
                         Core.settings.put("wePlacingFloorRemovesOre", !Core.settings.getBool("wePlacingFloorRemovesOre", true));
                         callWorldEditMenu();
                     }
-                    case 4 -> Vars.ui.showInfo("""
-                            [accent]Auto Save[white]:
-                            Due to how jank this mod is, this mod [accent]automatically saves [white]a snapshot of the map you are editing.
-                            [accent]World Edit [white]autosaves can be found in the [accent]saves/WorldEdit[white] directory.
-                            You will need to [accent]manually import [white]autosaves for them to show in the [load game] tab.
-                            You can edit how often autosaves are performed and how many of them can be kept in [accent]settings > game
-                            """);
+                    case 4 -> {
+                        //todo: add menu to choose tool
+                        if (currentTool == null) {
+                            currentTool = tool.values()[0];
+                        } else if (currentTool.ordinal() == tool.values().length - 1) {
+                            currentTool = null;
+                        } else {
+                            currentTool = tool.values()[currentTool.ordinal() + 1];
+                        }
+                        callWorldEditMenu();
+                    }
+                    case 5 -> {
+                        if (actionHistory.size() > 0) {
+                            Vars.ui.showConfirm("This will [scarlet]undo [white]your last action!\nWould you like to proceed?", () -> {
+                                actionLogData lastAction = actionHistory.get();
+                                for (var b : lastAction.affected) {
+                                    lastAction.type.set(b, lastAction.before);
+                                }
+                                actionHistory.removeFirst();
+                            });
+                        } else {
+                            Vars.ui.showInfo("Unable to undo!");
+                        }
+                    }
                 }
             });
 
-            if (!Core.settings.getBool("weExitCodeZero", true)) {
+            if (!Core.settings.getBool("weExitCodeZero")) {
                 Vars.ui.showCustomConfirm("World Edit didnt shut down correctly!",
                         """
                                 World Edit was not disabled before the game exit.
@@ -146,21 +246,30 @@ public class we extends Mod {
                         () -> Core.settings.put("weExitCodeZero", true));
             }
         });
+        Events.on(EventType.BlockBuildBeginEvent.class, event -> {
+            if (editing) {
+                Block block = event.tile.build instanceof ConstructBlock.ConstructBuild cb ? cb.current : event.tile.block();
+                if (block instanceof Prop) {
+                    event.tile.setBlock(block);
+                }
+
+            }
+        });
         Events.run(EventType.Trigger.update, () -> {
             if (Vars.state.isPlaying()) {
                 if (Core.input.keyTap(KeyCode.f2)) {
                     callWorldEditMenu();
                 }
-                if (Core.input.keyTap(KeyCode.escape)) {
-                    if (editing && !Core.scene.hasDialog()) { //if World Edit is enabled and there is no Dialogue (Menu/InfoMessage) open
-                        if (Core.settings.getBool("weSafeExit")) {
-                            reset();
-                            Vars.ui.showInfo("[accent]For your safety World Edit was Disabled.\n\n[white]Remember to [accent]Always [white]disable [accent]World Edit [white]before saving and quiting a save.");
+                if (editing) {
+                    if (Core.input.keyTap(KeyCode.escape)) {
+                        if (!Core.scene.hasDialog()) { //if World Edit is enabled and there is no Dialogue (Menu/InfoMessage) open
+                            if (Core.settings.getBool("weSafeExit")) {
+                                reset();
+                                Vars.ui.showInfo("[accent]For your safety World Edit was Disabled.\n\n[white]Remember to [accent]Always [white]disable [accent]World Edit [white]before saving and quiting a save.");
+                            }
                         }
                     }
-                }
-                if (Core.input.keyTap(KeyCode.mouseMiddle)) {
-                    if (editing) {
+                    if (Core.input.keyTap(KeyCode.mouseMiddle)) {
                         int rawCursorX = World.toTile(Core.input.mouseWorld().x), rawCursorY = World.toTile(Core.input.mouseWorld().y);
                         final Tile cursorTile = Vars.world.tile(rawCursorX, rawCursorY);
                         if (cursorTile.build == null) {
@@ -172,43 +281,171 @@ public class we extends Mod {
                             Vars.ui.hudfrag.blockfrag.currentCategory = b.category;
                         }
                     }
-                }
-                if (editing && Core.settings.getBool("weAutoSave", true)) {
-                    if (lastAutoSave < System.currentTimeMillis() - (Core.settings.getInt("weAutoSaveSpacing") * 60 * 1000L)) {
-                        lastAutoSave = System.currentTimeMillis();
-                        Log.info("AutoSaving");
-                        int max = Core.settings.getInt("weAutoSaveCount");
-                        //use map file name to make sure it can be saved
-                        String mapName = (state.map.file == null ? "unknown" : state.map.file.nameWithoutExtension()).replace(" ", "_");
-                        String date = autoSaveNameFormatter.format(LocalDateTime.now());
+                    if (Core.input.keyTap(KeyCode.mouseLeft)) {
+                        if (!Core.scene.hasDialog()) {
+                            if (currentTool != null) {
+                                Block block = Vars.control.input.block;
+                                if (block != null && currentAction == null) {
+                                    int rawCursorX = World.toTile(Core.input.mouseWorld().x), rawCursorY = World.toTile(Core.input.mouseWorld().y);
+                                    final Tile selectedTile = Vars.world.tile(rawCursorX, rawCursorY);
 
-                        Seq<Fi> autoSaves = autoSaveDirectory.findAll(f -> f.name().startsWith("auto_"));
-                        autoSaves.sort(f -> -f.lastModified());
+                                    actionType type;
+                                    Object before;
+                                    if (block instanceof OverlayFloor) {
+                                        type = actionType.ore;
+                                        before = selectedTile.overlay();
+                                    } else if (block instanceof Floor) {
+                                        type = actionType.floor;
+                                        before = selectedTile.floor();
+                                    } else {
+                                        type = actionType.block;
+                                        before = selectedTile.block();
+                                    }
 
-                        //delete older saves
-                        if (autoSaves.size >= max) {
-                            for (int i = max - 1; i < autoSaves.size; i++) {
-                                autoSaves.get(i).delete();
+                                    switch (currentTool) {
+                                        case fill -> {
+                                            currentAction = new actionLogData(type, new Seq<>(), before, block);
+                                            ArrayList<Tile> actionQueue = new ArrayList<>();
+                                            actionQueue.add(selectedTile);
+                                            ArrayList<Tile> queue;
+                                            while (!actionQueue.isEmpty()) {
+                                                queue = new ArrayList<>();
+                                                for (var tile : actionQueue) {
+                                                    if (!currentAction.affected.contains(tile)) {
+                                                        currentAction.affected.add(tile);
+
+                                                        Tile a = world.tile(tile.x + 1, tile.y);
+                                                        Tile b = world.tile(tile.x, tile.y + 1);
+                                                        Tile c = world.tile(tile.x - 1, tile.y);
+                                                        Tile d = world.tile(tile.x, tile.y - 1);
+
+                                                        if (a != null && currentAction.type.check(a, currentAction.before)) {
+                                                            queue.add(a);
+                                                        }
+                                                        if (b != null && currentAction.type.check(b, currentAction.before)) {
+                                                            queue.add(b);
+                                                        }
+                                                        if (c != null && currentAction.type.check(c, currentAction.before)) {
+                                                            queue.add(c);
+                                                        }
+                                                        if (d != null && currentAction.type.check(d, currentAction.before)) {
+                                                            queue.add(d);
+                                                        }
+                                                    }
+                                                }
+                                                actionQueue = queue;
+                                            }
+                                        }
+                                        case outline -> {
+                                            currentAction = new actionLogData(type, new Seq<>(), before, block);
+                                            ArrayList<Tile> actionQueue = new ArrayList<>();
+                                            actionQueue.add(selectedTile);
+                                            ArrayList<Tile> queue;
+                                            ArrayList<Tile> ignored = new ArrayList<>();
+                                            while (!actionQueue.isEmpty()) {
+                                                queue = new ArrayList<>();
+                                                for (var tile : actionQueue) {
+                                                    if (!currentAction.affected.contains(tile)) {
+                                                        Tile a = world.tile(tile.x + 1, tile.y);
+                                                        Tile b = world.tile(tile.x, tile.y + 1);
+                                                        Tile c = world.tile(tile.x - 1, tile.y);
+                                                        Tile d = world.tile(tile.x, tile.y - 1);
+
+                                                        if (a != null && currentAction.type.check(a, currentAction.before)) {
+                                                            if (!ignored.contains(a)) {
+                                                                ignored.add(a);
+                                                                queue.add(a);
+                                                            }
+                                                        } else {
+                                                            if (!currentAction.affected.contains(tile)) {
+                                                                currentAction.affected.add(tile);
+                                                            }
+                                                        }
+                                                        if (b != null && currentAction.type.check(b, currentAction.before)) {
+                                                            if (!ignored.contains(b)) {
+                                                                ignored.add(b);
+                                                                queue.add(b);
+                                                            }
+                                                        } else {
+                                                            if (!currentAction.affected.contains(tile)) {
+                                                                currentAction.affected.add(tile);
+                                                            }
+                                                        }
+                                                        if (c != null && currentAction.type.check(c, currentAction.before)) {
+                                                            if (!ignored.contains(c)) {
+                                                                ignored.add(c);
+                                                                queue.add(c);
+                                                            }
+                                                        } else {
+                                                            if (!currentAction.affected.contains(tile)) {
+                                                                currentAction.affected.add(tile);
+                                                            }
+                                                        }
+                                                        if (d != null && currentAction.type.check(d, currentAction.before)) {
+                                                            if (!ignored.contains(d)) {
+                                                                ignored.add(d);
+                                                                queue.add(d);
+                                                            }
+                                                        } else {
+                                                            if (!currentAction.affected.contains(tile)) {
+                                                                currentAction.affected.add(tile);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                actionQueue = queue;
+                                            }
+                                        }
+                                    }
+                                    if (currentAction != null) {
+                                        Vars.ui.showCustomConfirm(currentAction.affected.size + " Tiles will be affected.", "Would you like to continue?", "Yes", "No", () -> {
+                                            actionHistory.add(currentAction);
+                                            for (var b : currentAction.affected) {
+                                                currentAction.type.set(b, currentAction.after);
+                                            }
+                                            if (currentAction.type == actionType.block) {
+                                                if (!(currentAction.after instanceof Prop)) {
+                                                    for (var b : currentAction.affected) {
+                                                        b.setTeam(player.team());
+                                                    }
+                                                }
+                                            }
+                                            currentAction = null;
+                                        }, () -> currentAction = null);
+                                    }
+                                }
                             }
                         }
+                    }
+                    if (Core.settings.getBool("weAutoSave", true)) {
+                        if (lastAutoSave < System.currentTimeMillis() - (Core.settings.getInt("weAutoSaveSpacing") * 60 * 1000L)) {
+                            lastAutoSave = System.currentTimeMillis();
+                            Log.info("AutoSaving");
+                            int max = Core.settings.getInt("weAutoSaveCount");
+                            //use map file name to make sure it can be saved
+                            String mapName = (state.map.file == null ? "unknown" : state.map.file.nameWithoutExtension()).replace(" ", "_");
+                            String date = autoSaveNameFormatter.format(LocalDateTime.now());
 
-                        String fileName = "auto_" + mapName + "_" + date + "." + saveExtension;
-                        Fi file = autoSaveDirectory.child(fileName);
-                        try {
-                            SaveIO.save(file);
-                            info("AutoSave completed.");
-                        } catch (Throwable e) {
-                            err("AutoSave failed.", e);
+                            Seq<Fi> autoSaves = autoSaveDirectory.findAll(f -> f.name().startsWith("auto_"));
+                            autoSaves.sort(f -> -f.lastModified());
+
+                            //delete older saves
+                            if (autoSaves.size >= max) {
+                                for (int i = max - 1; i < autoSaves.size; i++) {
+                                    autoSaves.get(i).delete();
+                                }
+                            }
+
+                            String fileName = "auto_" + mapName + "_" + date + "." + saveExtension;
+                            Fi file = autoSaveDirectory.child(fileName);
+                            try {
+                                SaveIO.save(file);
+                                info("AutoSave completed.");
+                            } catch (Throwable e) {
+                                err("AutoSave failed.", e);
+                            }
                         }
                     }
-                }
-            }
-        });
-        Events.on(EventType.BlockBuildBeginEvent.class, event -> {
-            if (editing) {
-                Block b = event.tile.build instanceof ConstructBlock.ConstructBuild cb ? cb.current : event.tile.block();
-                if (b instanceof Prop) {
-                    event.tile.setBlock(b);
                 }
             }
         });
@@ -219,6 +456,8 @@ public class we extends Mod {
                 new String[]{"[white]World Edit: " + (editing ? "[lime]Enabled\n[black]lol" : "[scarlet]Disabled\n[black]Unlock Za Warudo")},
                 new String[]{"Bake Floors", "Bake Ores"},
                 new String[]{"Placing Floor removes Ore? " + booleanColor(Core.settings.getBool("wePlacingFloorRemovesOre", true))},
+                new String[]{"Tool: " + (currentTool == null ? "None" : currentTool.name)},
+                new String[]{"Undo"},
                 new String[]{"More Info"}
         };
         Menus.menu(30989378, "World Edit Menu", "[gray]Press [ esc ] to exit this menu", buttons);
@@ -244,7 +483,6 @@ public class we extends Mod {
             Vars.ui.showInfo("[scarlet]////////// - WARNING - \\\\\\\\\\\\\\\\\\\\\n\n[white]Remember to [accent]Disable World Edit [white]before saving and/or exiting.\nDisabling World Edit removes Wall/Boulders/Floors/etc. from build menu.\nIf [accent]World Edit [white]is [scarlet]Disabled [white]and you place a [accent]Wall/Boulder [white]your save [scarlet]WILL [white]be corrupted irreversibly!\n\n[gray]It is highly recommended for you to leave Safe Exit Enabled!");
         }
     }
-
     public static void reset() {
         if (defaultRevealedBlocks != null) Vars.state.rules.revealedBlocks = defaultRevealedBlocks;
         editing = false;
@@ -271,5 +509,38 @@ public class we extends Mod {
 
     public static String booleanColor(boolean b) {
         return (b ? "[lime]" : "[scarlet]") + b;
+    }
+
+    private static class actionLogArray {
+        private actionLogData[] data;
+
+        public actionLogArray() {
+            this.data = new actionLogData[]{};
+        }
+
+        public void add(actionLogData ald) {
+            data = grow();
+            data[0] = ald;
+        }
+
+        public actionLogData get() {
+            return data[0];
+        }
+
+        public int size() {
+            return data.length;
+        }
+
+        public actionLogData[] grow() {
+            actionLogData[] out = new actionLogData[data.length + 1];
+            System.arraycopy(data, 0, out, 1, data.length);
+            return out;
+        }
+
+        public void removeFirst() {
+            actionLogData[] out = new actionLogData[data.length - 1];
+            System.arraycopy(data, 1, out, 0, data.length - 1);
+            data = out;
+        }
     }
 }
