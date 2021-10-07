@@ -359,7 +359,7 @@ public class we extends Mod {
                                                         Tile c = world.tile(tile.x - 1, tile.y);
                                                         Tile d = world.tile(tile.x, tile.y - 1);
 
-                                                        if (a != null && currentAction.type.check(a, currentAction.before)) {
+                                                        if (a != null && currentAction.type.check(a, currentAction.before) && a.block().isAir()) {
                                                             if (!ignored.contains(a)) {
                                                                 ignored.add(a);
                                                                 queue.add(a);
@@ -369,7 +369,7 @@ public class we extends Mod {
                                                                 currentAction.affected.add(tile);
                                                             }
                                                         }
-                                                        if (b != null && currentAction.type.check(b, currentAction.before)) {
+                                                        if (b != null && currentAction.type.check(b, currentAction.before) && b.block().isAir()) {
                                                             if (!ignored.contains(b)) {
                                                                 ignored.add(b);
                                                                 queue.add(b);
@@ -379,7 +379,7 @@ public class we extends Mod {
                                                                 currentAction.affected.add(tile);
                                                             }
                                                         }
-                                                        if (c != null && currentAction.type.check(c, currentAction.before)) {
+                                                        if (c != null && currentAction.type.check(c, currentAction.before) && c.block().isAir()) {
                                                             if (!ignored.contains(c)) {
                                                                 ignored.add(c);
                                                                 queue.add(c);
@@ -389,7 +389,7 @@ public class we extends Mod {
                                                                 currentAction.affected.add(tile);
                                                             }
                                                         }
-                                                        if (d != null && currentAction.type.check(d, currentAction.before)) {
+                                                        if (d != null && currentAction.type.check(d, currentAction.before) && d.block().isAir()) {
                                                             if (!ignored.contains(d)) {
                                                                 ignored.add(d);
                                                                 queue.add(d);
