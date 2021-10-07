@@ -108,10 +108,10 @@ public class we extends Mod {
     private static class actionLogData {
         public final actionType type;
         public final Seq<Tile> affected;
-        public final Object before;
-        public final Object after;
+        public final Block before;
+        public final Block after;
 
-        public actionLogData(actionType type, Seq<Tile> affected, Object before, Object after) {
+        public actionLogData(actionType type, Seq<Tile> affected, Block before, Block after) {
             this.type = type;
             this.affected = affected;
             this.before = before;
@@ -152,6 +152,8 @@ public class we extends Mod {
             addSliderGameSetting("weAutoSaveCount", 10, 1, 60, 1, i -> i + " AutoSaves");
             coreBundle.put("setting.weSafeTools.name", "(WE) Safe Tools");
             addBooleanGameSetting("weSafeTools", true);
+            coreBundle.put("setting.weInstantBake.name", "(WE) Instantly Bake Tools");
+            addBooleanGameSetting("weInstantBake", false);
 
             Menus.registerMenu(30989378, (player, selection) -> {
                 switch (selection) {
@@ -294,7 +296,7 @@ public class we extends Mod {
                                     final Tile selectedTile = Vars.world.tile(rawCursorX, rawCursorY);
 
                                     actionType type;
-                                    Object before;
+                                    Block before;
                                     if (block instanceof OverlayFloor) {
                                         type = actionType.ore;
                                         before = selectedTile.overlay();
@@ -412,14 +414,23 @@ public class we extends Mod {
                                     if (currentAction != null) {
                                         Vars.ui.showCustomConfirm(currentAction.affected.size + " Tiles will be affected.", "Would you like to continue?", "Yes", "No", () -> {
                                             actionHistory.add(currentAction);
-                                            for (var b : currentAction.affected) {
-                                                currentAction.type.set(b, currentAction.after);
-                                            }
                                             if (currentAction.type == actionType.block) {
+                                                for (var b : currentAction.affected) {
+                                                    currentAction.type.set(b, currentAction.after);
+                                                }
                                                 if (!(currentAction.after instanceof Prop)) {
                                                     for (var b : currentAction.affected) {
                                                         b.setTeam(player.team());
                                                     }
+                                                }
+                                            }
+                                            if (Core.settings.getBool("weInstantBake")) {
+                                                for (var b : currentAction.affected) {
+                                                    currentAction.type.set(b, currentAction.after);
+                                                }
+                                            } else {
+                                                for (var b : currentAction.affected) {
+                                                    b.setBlock(currentAction.after);
                                                 }
                                             }
                                             currentAction = null;
