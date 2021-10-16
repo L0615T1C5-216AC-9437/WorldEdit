@@ -211,15 +211,13 @@ public class we extends Mod {
                         callWorldEditMenu();
                     }
                     case 4 -> {
-                        //todo: add menu to choose tool
-                        if (currentTool == null) {
-                            currentTool = tool.values()[0];
-                        } else if (currentTool.ordinal() == tool.values().length - 1) {
-                            currentTool = null;
-                        } else {
-                            currentTool = tool.values()[currentTool.ordinal() + 1];
+                        String[][] out = new String[tool.values().length + 1][1];
+                        int i = 0;
+                        for (tool t : tool.values()) {
+                            out[i++][0] = t.name;
                         }
-                        callWorldEditMenu();
+                        out[i][0] = "None";
+                        Menus.menu(30989379, "Tool Selection", "[gray]Press [ esc ] to exit this menu", out);
                     }
                     case 5 -> {
                         if (actionHistory.size() > 0) {
@@ -236,8 +234,16 @@ public class we extends Mod {
                     }
                 }
             });
+            Menus.registerMenu(30989379, (player, selection) -> {
+                if (selection == tool.values().length) {
+                    currentTool = null;
+                } else if (selection != -1) {
+                    currentTool = tool.values()[selection];
+                }
+                callWorldEditMenu();
+            });
 
-            if (!Core.settings.getBool("weExitCodeZero")) {
+            if (!Core.settings.getBool("weExitCodeZero", true)) {
                 Vars.ui.showCustomConfirm("World Edit didnt shut down correctly!",
                         """
                                 World Edit was not disabled before the game exit.
