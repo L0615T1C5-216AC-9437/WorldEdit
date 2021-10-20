@@ -184,7 +184,7 @@ public class we extends Mod {
                         for (int x = 0; x < Vars.state.map.width; x++) {
                             for (int y = 0; y < Vars.state.map.height; y++) {
                                 Tile t = Vars.world.tile(x, y);
-                                if (t.block() instanceof Floor && !(t.block() instanceof AirBlock) && !(t.block() instanceof SpawnBlock)) {
+                                if (t.block() instanceof Floor && !(t.block() instanceof OreBlock) && !(t.block() instanceof AirBlock) && !(t.block() instanceof SpawnBlock)) {
                                     Floor ore = t.overlay();
                                     t.setFloor((Floor) t.block());
                                     t.setAir();
