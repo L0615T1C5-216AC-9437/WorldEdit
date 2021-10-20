@@ -32,6 +32,8 @@ import static mindustry.Vars.*;
 
 public class we extends Mod {
     private static boolean editing = false;
+    private static int menuID;
+    private static int menuID2;
     //autoSave
     private static long lastAutoSave = System.currentTimeMillis();
     private static final DateTimeFormatter autoSaveNameFormatter = DateTimeFormatter.ofPattern("MM-dd-yyyy_HH-mm-ss");
@@ -155,7 +157,7 @@ public class we extends Mod {
             coreBundle.put("setting.weInstantBake.name", "(WE) Instantly Bake Tools");
             addBooleanGameSetting("weInstantBake", false);
 
-            Menus.registerMenu(30989378, (player, selection) -> {
+            menuID = Menus.registerMenu((player, selection) -> {
                 switch (selection) {
                     default -> Vars.ui.showInfo("""
                             [accent]Auto Save[white]:
@@ -217,7 +219,7 @@ public class we extends Mod {
                             out[i++][0] = t.name;
                         }
                         out[i][0] = "None";
-                        Menus.menu(30989379, "Tool Selection", "[gray]Press [ esc ] to exit this menu", out);
+                        Menus.menu(menuID2, "Tool Selection", "[gray]Press [ esc ] to exit this menu", out);
                     }
                     case 5 -> {
                         if (actionHistory.size() > 0) {
@@ -234,7 +236,7 @@ public class we extends Mod {
                     }
                 }
             });
-            Menus.registerMenu(30989379, (player, selection) -> {
+            menuID2 = Menus.registerMenu((player, selection) -> {
                 if (selection == tool.values().length) {
                     currentTool = null;
                 } else if (selection != -1) {
@@ -489,7 +491,7 @@ public class we extends Mod {
                 new String[]{"Undo"},
                 new String[]{"More Info"}
         };
-        Menus.menu(30989378, "World Edit Menu", "[gray]Press [ esc ] to exit this menu", buttons);
+        Menus.menu(menuID, "World Edit Menu", "[gray]Press [ esc ] to exit this menu", buttons);
     }
 
     public static void unlockTheWorld() {
