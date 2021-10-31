@@ -52,7 +52,6 @@ public class we extends Mod {
     }
 
     private static final HashMap<Block, blockData> defaultBlockData = new HashMap<>();
-    private static ObjectSet<Block> defaultRevealedBlocks = null;
 
     private static final ArrayList<String> blockBlackList = new ArrayList<>() {{
         add("air");
@@ -497,7 +496,6 @@ public class we extends Mod {
     public static void unlockTheWorld() {
         if (editing) return; //triggering utw twice messes up reset()
         Core.settings.put("weExitCodeZero", false);
-        if (defaultRevealedBlocks == null) defaultRevealedBlocks = Vars.state.rules.revealedBlocks;
         editing = true;
         Vars.state.rules.editor = true;
         Vars.state.rules.revealedBlocks = new ObjectSet<>();
@@ -515,7 +513,7 @@ public class we extends Mod {
         }
     }
     public static void reset() {
-        if (defaultRevealedBlocks != null) Vars.state.rules.revealedBlocks = defaultRevealedBlocks;
+        Vars.state.rules.revealedBlocks = state.map.rules().revealedBlocks;
         editing = false;
         Vars.state.rules.editor = false;
         Vars.content.blocks().forEach(b -> {
