@@ -317,7 +317,8 @@ public class we extends Mod {
 
                                     switch (currentTool) {
                                         case fill -> {
-                                            currentAction = new actionLogData(type, new Seq<>(), before, block);
+                                            final actionType finalActionType = Core.settings.getBool("weInstantBake") ? type : actionType.block;
+                                            currentAction = new actionLogData(finalActionType, new Seq<>(), finalActionType == actionType.block ? selectedTile.block() : before, block);
                                             ArrayList<Tile> actionQueue = new ArrayList<>();
                                             actionQueue.add(selectedTile);
                                             ArrayList<Tile> queue;
@@ -332,16 +333,16 @@ public class we extends Mod {
                                                         Tile c = world.tile(tile.x - 1, tile.y);
                                                         Tile d = world.tile(tile.x, tile.y - 1);
 
-                                                        if (a != null && currentAction.type.check(a, currentAction.before) && a.block().isAir()) {
+                                                        if (a != null && type.check(a, before) && a.block().isAir()) {
                                                             queue.add(a);
                                                         }
-                                                        if (b != null && currentAction.type.check(b, currentAction.before) && b.block().isAir()) {
+                                                        if (b != null && type.check(b, before) && b.block().isAir()) {
                                                             queue.add(b);
                                                         }
-                                                        if (c != null && currentAction.type.check(c, currentAction.before) && c.block().isAir()) {
+                                                        if (c != null && type.check(c, before) && c.block().isAir()) {
                                                             queue.add(c);
                                                         }
-                                                        if (d != null && currentAction.type.check(d, currentAction.before) && d.block().isAir()) {
+                                                        if (d != null && type.check(d, before) && d.block().isAir()) {
                                                             queue.add(d);
                                                         }
                                                     }
@@ -354,7 +355,8 @@ public class we extends Mod {
                                             }
                                         }
                                         case outline -> {
-                                            currentAction = new actionLogData(type, new Seq<>(), before, block);
+                                            final actionType finalActionType = Core.settings.getBool("weInstantBake") ? type : actionType.block;
+                                            currentAction = new actionLogData(finalActionType, new Seq<>(), finalActionType == actionType.block ? selectedTile.block() : before, block);
                                             ArrayList<Tile> actionQueue = new ArrayList<>();
                                             actionQueue.add(selectedTile);
                                             ArrayList<Tile> queue;
@@ -368,7 +370,7 @@ public class we extends Mod {
                                                         Tile c = world.tile(tile.x - 1, tile.y);
                                                         Tile d = world.tile(tile.x, tile.y - 1);
 
-                                                        if (a != null && currentAction.type.check(a, currentAction.before) && a.block().isAir()) {
+                                                        if (a != null && type.check(a, currentAction.before) && a.block().isAir()) {
                                                             if (!ignored.contains(a)) {
                                                                 ignored.add(a);
                                                                 queue.add(a);
@@ -378,7 +380,7 @@ public class we extends Mod {
                                                                 currentAction.affected.add(tile);
                                                             }
                                                         }
-                                                        if (b != null && currentAction.type.check(b, currentAction.before) && b.block().isAir()) {
+                                                        if (b != null && type.check(b, currentAction.before) && b.block().isAir()) {
                                                             if (!ignored.contains(b)) {
                                                                 ignored.add(b);
                                                                 queue.add(b);
@@ -388,7 +390,7 @@ public class we extends Mod {
                                                                 currentAction.affected.add(tile);
                                                             }
                                                         }
-                                                        if (c != null && currentAction.type.check(c, currentAction.before) && c.block().isAir()) {
+                                                        if (c != null && type.check(c, currentAction.before) && c.block().isAir()) {
                                                             if (!ignored.contains(c)) {
                                                                 ignored.add(c);
                                                                 queue.add(c);
@@ -398,7 +400,7 @@ public class we extends Mod {
                                                                 currentAction.affected.add(tile);
                                                             }
                                                         }
-                                                        if (d != null && currentAction.type.check(d, currentAction.before) && d.block().isAir()) {
+                                                        if (d != null && type.check(d, currentAction.before) && d.block().isAir()) {
                                                             if (!ignored.contains(d)) {
                                                                 ignored.add(d);
                                                                 queue.add(d);
@@ -430,14 +432,9 @@ public class we extends Mod {
                                                         b.setTeam(player.team());
                                                     }
                                                 }
-                                            }
-                                            if (Core.settings.getBool("weInstantBake")) {
-                                                for (var b : currentAction.affected) {
-                                                    currentAction.type.set(b, currentAction.after);
-                                                }
                                             } else {
                                                 for (var b : currentAction.affected) {
-                                                    b.setBlock(currentAction.after);
+                                                    currentAction.type.set(b, currentAction.after);
                                                 }
                                             }
                                             currentAction = null;
