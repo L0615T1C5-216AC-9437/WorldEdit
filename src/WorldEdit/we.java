@@ -3,14 +3,25 @@ package WorldEdit;
 import arc.Core;
 import arc.Events;
 import arc.files.Fi;
+import arc.graphics.Color;
+import arc.graphics.g2d.Draw;
+import arc.graphics.g2d.Lines;
 import arc.input.KeyCode;
+import arc.struct.IntSet;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
+import arc.struct.StringMap;
 import arc.util.Log;
 import mindustry.Vars;
+import mindustry.content.Blocks;
 import mindustry.core.World;
 import mindustry.game.EventType;
 import mindustry.game.EventType.ClientLoadEvent;
+import mindustry.game.Schematic;
+import mindustry.gen.Building;
+import mindustry.graphics.Drawf;
+import mindustry.graphics.Pal;
+import mindustry.input.Placement;
 import mindustry.io.SaveIO;
 import mindustry.mod.Mod;
 import mindustry.ui.Menus;
@@ -60,6 +71,9 @@ public class we extends Mod {
     }};
 
     private static final String safeToolsWarning = "[accent]Safe Tools [white]limited your action to 5000 blocks!\n[gray]Go to settings to disable.";
+
+    private static int copyX = -1;
+    private static int copyY = -1;
 
     //undo redo
     private enum actionType {
@@ -268,6 +282,12 @@ public class we extends Mod {
 
             }
         });
+
+        Events.run(EventType.Trigger.draw, () -> {
+            if (Core.input.keyDown(KeyCode.controlLeft) && Core.input.keyDown(KeyCode.c) && copyX != -1) {
+                drawSelection(copyX, copyY, World.toTile(Core.input.mouseWorld().x), World.toTile(Core.input.mouseWorld().y));
+            }
+        });
         Events.run(EventType.Trigger.update, () -> {
             if (Vars.state.isPlaying()) {
                 if (Core.input.keyTap(KeyCode.f2)) {
@@ -473,6 +493,24 @@ public class we extends Mod {
                             }
                         }
                     }
+
+                    if (Core.input.keyDown(KeyCode.controlLeft)) {
+                        if (Core.input.keyTap(KeyCode.c)) {
+                            copyX = World.toTile(Core.input.mouseWorld().x);
+                            copyY = World.toTile(Core.input.mouseWorld().y);
+                            System.out.println("copy started");
+                        } else if (Core.input.keyRelease(KeyCode.c)) {
+                            System.out.println("copy released");
+                            control.input.lastSchematic = create(copyX, copyY, World.toTile(Core.input.mouseWorld().x), World.toTile(Core.input.mouseWorld().y));
+                            control.input.useSchematic(control.input.lastSchematic);
+                            if (control.input.selectRequests.isEmpty()) {
+                                control.input.lastSchematic = null;
+                            }
+                        }
+                    } else if (copyX != -1) {
+                        copyX = -1;
+                        copyY = -1;
+                    }
                 }
             }
         });
@@ -535,6 +573,106 @@ public class we extends Mod {
 
     public static String booleanColor(boolean b) {
         return (b ? "[lime]" : "[scarlet]") + b;
+    }
+
+    void drawSelection(int x1, int y1, int x2, int y2) {
+        //todo: fix weird bloom effect
+        Draw.reset();
+        Draw.alpha(1);
+
+        Placement.NormalizeDrawResult result = Placement.normalizeDrawArea(Blocks.air, x1, y1, x2, y2, false, 500, 1f);
+        Placement.NormalizeResult dresult = Placement.normalizeArea(x1, y1, x2, y2, 0, false, 500);
+
+        for (int x = dresult.x; x <= dresult.x2; x++) {
+            for (int y = dresult.y; y <= dresult.y2; y++) {
+                Tile tile = world.tileBuilding(x, y);
+                if (tile == null || tile.block().isAir()) continue;
+                int cx = tile.build == null ? x : tile.build.tileX();
+                int cy = tile.build == null ? y : tile.build.tileY();
+                drawSelected(cx, cy, tile.block(), Pal.accent);
+            }
+        }
+
+        Lines.stroke(2f);
+
+        Draw.color(Pal.accentBack);
+        Lines.rect(result.x, result.y - 1, result.x2 - result.x, result.y2 - result.y);
+        Draw.color(Pal.accent);
+        Lines.rect(result.x, result.y, result.x2 - result.x, result.y2 - result.y);
+    }
+
+    private static void drawSelected(int x, int y, Block block, Color color) {
+        Drawf.selected(x, y, block, color);
+    }
+
+    public Schematic create(int x, int y, int x2, int y2) {
+        Placement.NormalizeResult result = Placement.normalizeArea(x, y, x2, y2, 0, false, maxSchematicSize);
+        x = result.x;
+        y = result.y;
+        x2 = result.x2;
+        y2 = result.y2;
+
+        int ox = x, oy = y, ox2 = x2, oy2 = y2;
+
+        Seq<Schematic.Stile> tiles = new Seq<>();
+
+        int minx = x2, miny = y2, maxx = x, maxy = y;
+        boolean found = false;
+        for (int cx = x; cx <= x2; cx++) {
+            for (int cy = y; cy <= y2; cy++) {
+                Building linked = world.build(cx, cy);
+                Block realBlock = linked == null ? null : linked instanceof ConstructBlock.ConstructBuild cons ? cons.current : linked.block;
+
+                if (linked != null && realBlock != null) {
+                    int top = realBlock.size / 2;
+                    int bot = realBlock.size % 2 == 1 ? -realBlock.size / 2 : -(realBlock.size - 1) / 2;
+                    minx = Math.min(linked.tileX() + bot, minx);
+                    miny = Math.min(linked.tileY() + bot, miny);
+                    maxx = Math.max(linked.tileX() + top, maxx);
+                    maxy = Math.max(linked.tileY() + top, maxy);
+                } else {
+                    minx = Math.min(cx, minx);
+                    miny = Math.min(cy, miny);
+                    maxx = Math.max(cx, maxx);
+                    maxy = Math.max(cy, maxy);
+                }
+                found = true;
+            }
+        }
+
+        if (found) {
+            x = minx;
+            y = miny;
+            x2 = maxx;
+            y2 = maxy;
+        } else {
+            return new Schematic(new Seq<>(), new StringMap(), 1, 1);
+        }
+
+        int width = x2 - x + 1, height = y2 - y + 1;
+        int offsetX = -x, offsetY = -y;
+        IntSet counted = new IntSet();
+        for (int cx = ox; cx <= ox2; cx++) {
+            for (int cy = oy; cy <= oy2; cy++) {
+                Tile t = world.tile(cx, cy);
+                Building tile = world.build(cx, cy);
+                Block realBlock = tile == null ? t.block() : tile instanceof ConstructBlock.ConstructBuild cons ? cons.current : tile.block;
+
+                if (t != null && !counted.contains(t.pos()) && realBlock != null && !realBlock.isAir()) {
+                    if (tile == null) {
+                        tiles.add(new Schematic.Stile(realBlock, cx + offsetX, cy + offsetY, null, (byte) 0));
+                        counted.add(t.pos());
+                    } else {
+                        Object config = tile instanceof ConstructBlock.ConstructBuild cons ? cons.lastConfig : tile.config();
+
+                        tiles.add(new Schematic.Stile(realBlock, tile.tileX() + offsetX, tile.tileY() + offsetY, config, (byte) tile.rotation));
+                        counted.add(tile.pos());
+                    }
+                }
+            }
+        }
+
+        return new Schematic(tiles, new StringMap(), width, height);
     }
 
     private static class actionLogArray {
