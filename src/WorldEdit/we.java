@@ -14,6 +14,7 @@ import arc.struct.StringMap;
 import arc.util.Log;
 import mindustry.Vars;
 import mindustry.content.Blocks;
+import mindustry.core.GameState;
 import mindustry.core.World;
 import mindustry.game.EventType;
 import mindustry.game.EventType.ClientLoadEvent;
@@ -498,9 +499,7 @@ public class we extends Mod {
                         if (Core.input.keyTap(KeyCode.c)) {
                             copyX = World.toTile(Core.input.mouseWorld().x);
                             copyY = World.toTile(Core.input.mouseWorld().y);
-                            System.out.println("copy started");
                         } else if (Core.input.keyRelease(KeyCode.c)) {
-                            System.out.println("copy released");
                             control.input.lastSchematic = create(copyX, copyY, World.toTile(Core.input.mouseWorld().x), World.toTile(Core.input.mouseWorld().y));
                             control.input.useSchematic(control.input.lastSchematic);
                             if (control.input.selectRequests.isEmpty()) {
@@ -560,6 +559,7 @@ public class we extends Mod {
             }
         });
         defaultBlockData.clear();
+        state.set(GameState.State.playing);
         Core.settings.put("weExitCodeZero", true);
     }
 
