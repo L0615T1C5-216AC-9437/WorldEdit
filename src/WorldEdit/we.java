@@ -81,10 +81,15 @@ public class we extends Plugin {
                 setter = e -> e.setBlock(b, Vars.player.team());
             }
 
-            fill(t.x, t.y, tester, setter);
+            Seq<Tile> area = fill(t.x, t.y, tester);
+
+            Core.app.post(() -> {
+                for (Tile t1 : area) {
+                    setter.get(t1);
+                }
+            });
         }),
         outline((t, b) -> {
-            Seq<Tile> area = new Seq<>();
             Boolf<Tile> tester;
             Cons<Tile> setter;
 
@@ -109,26 +114,26 @@ public class we extends Plugin {
                 }
             }
 
-            fill(t.x, t.y, tester, area::add);
+            Seq<Tile> area = fill(t.x, t.y, tester);
 
             Seq<Tile> outlineTiles = new Seq<>();
-            System.out.println("area " + area.size);
             for (Tile t1 : area) {
                 for (int x = t1.x - 1; x < t1.x + 2; x++) {
                     for (int y = t1.y - 1; y < t1.y + 2; y++) {
                         Tile t2 = Vars.world.tile(x, y);
                         if (t2 != null && !tester.get(t2)) {
                             outlineTiles.add(t1);
-                            x = Integer.MAX_VALUE;
+                            x = t1.x * 5;
                             break;
                         }
                     }
                 }
             }
-            for (Tile t1 : outlineTiles) {
-                System.out.println("set " + t1.x + " " + t1.y);
-                setter.get(t1);
-            }
+            Core.app.post(() -> {
+                for (Tile t1 : outlineTiles) {
+                    setter.get(t1);
+                }
+            });
         });
 
         public static final int size = values().length;
@@ -159,7 +164,7 @@ public class we extends Plugin {
             void accept(Tile t, Block b);
         }
 
-        private static void fill(int x, int y, Boolf<Tile> tester, Cons<Tile> setter) {
+        private static Seq<Tile> fill(int x, int y, Boolf<Tile> tester) {
             Seq<Tile> out = new Seq<>();
             int x1;
 
@@ -178,7 +183,6 @@ public class we extends Plugin {
                     boolean spanAbove = false, spanBelow = false;
                     while (x1 < Vars.world.width() && tester.get(Vars.world.tile(x1, y))) {
                         Tile t = Vars.world.tile(x1, y);
-                        setter.get(t);
                         out.add(t);
 
                         Tile t1 = Vars.world.tile(x1, y - 1);
@@ -204,6 +208,7 @@ public class we extends Plugin {
                 stack = null;
                 System.gc();
             }
+            return out;
         }
     }
 
@@ -335,21 +340,23 @@ public class we extends Plugin {
     }
 
     private static void disable() {
-        //reset build visibility
-        for (var a : Vars.content.blocks()) {
-            if (a.id != 0) {
-                BlockData bd = defaultBlockSettings.get(a.id);
-                a.buildVisibility = bd.buildVisibility;
-                a.breakable = bd.breakable;
-                a.floating = bd.floating;
-                a.placeableLiquid = bd.placeableLiquid;
+        if (enabled) {
+            //reset build visibility
+            for (var a : Vars.content.blocks()) {
+                if (a.id != 0) {
+                    BlockData bd = defaultBlockSettings.get(a.id);
+                    a.buildVisibility = bd.buildVisibility;
+                    a.breakable = bd.breakable;
+                    a.floating = bd.floating;
+                    a.placeableLiquid = bd.placeableLiquid;
+                }
             }
-        }
-        sendChatMessage("World Edit disabled.");
+            sendChatMessage("World Edit disabled.");
 
-        Vars.state.rules.editor = false;
-        Vars.state.set(GameState.State.playing);
-        enabled = false;
+            Vars.state.rules.editor = false;
+            Vars.state.set(GameState.State.playing);
+            enabled = false;
+        }
     }
 
     private static void callF2Menu() {
